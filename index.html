@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gestor Cájar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f2937">
+<style>
+  :root{
+    --azul:#1f3a5f;
+    --azul-claro:#3b5b82;
+    --gris-fondo:#f3f4f6;
+    --gris-borde:#d1d5db;
+    --texto:#1f2937;
+    --verde:#15803d;
+    --ambar:#b45309;
+    --rojo:#b91c1c;
+    --blanco:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--gris-fondo); color:var(--texto);
+    padding-bottom:70px;
+  }
+  header{
+    background:var(--azul); color:#fff; padding:10px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:10;
+  }
+  header .marca{display:flex; align-items:center; gap:10px;}
+  header .escudo{height:34px; width:auto; border-radius:4px; background:#fff; padding:2px;}
+  header h1{font-size:16px; margin:0; font-weight:600; line-height:1.1;}
+  header .usuario{font-size:12px; opacity:.85;}
+  #logoutBtn{background:none;border:none;color:#fff;font-size:12px;text-decoration:underline;padding:0;}
+
+  nav.tabs{
+    display:flex; background:#fff; border-bottom:1px solid var(--gris-borde);
+    position:sticky; top:52px; z-index:9;
+  }
+  nav.tabs button{
+    flex:1; padding:12px 0; background:none; border:none; font-size:14px;
+    color:#6b7280; border-bottom:3px solid transparent;
+  }
+  nav.tabs button.activo{color:var(--azul); border-bottom-color:var(--azul); font-weight:600;}
+
+  main{padding:14px;}
+  .oculto{display:none !important;}
+
+  .card{
+    background:#fff; border:1px solid var(--gris-borde); border-radius:10px;
+    padding:14px; margin-bottom:10px;
+  }
+  .card h3{margin:0 0 6px; font-size:15px;}
+  .fila{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .etiqueta{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px;
+    font-weight:600;
+  }
+  .etq-pendiente{background:#fef3c7; color:var(--ambar);}
+  .etq-curso{background:#dbeafe; color:#1d4ed8;}
+  .etq-hecho{background:#dcfce7; color:var(--verde);}
+  .etq-urgente{background:#fee2e2; color:var(--rojo);}
+
+  button.accion{
+    background:var(--azul); color:#fff; border:none; border-radius:8px;
+    padding:9px 14px; font-size:13px; font-weight:600;
+  }
+  button.secundaria{
+    background:#fff; color:var(--azul); border:1px solid var(--azul);
+    border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600;
+  }
+  button.pequena{padding:6px 10px; font-size:12px; border-radius:6px;}
+  button:disabled{opacity:.5;}
+
+  input, select, textarea{
+    width:100%; padding:10px; border:1px solid var(--gris-borde); border-radius:8px;
+    font-size:14px; margin-bottom:8px; font-family:inherit;
+  }
+  label{font-size:12px; color:#6b7280; display:block; margin-bottom:2px;}
+
+  .fab{
+    position:fixed; bottom:20px; right:20px; width:54px; height:54px; border-radius:50%;
+    background:var(--azul); color:#fff; font-size:26px; border:none; box-shadow:0 4px 10px rgba(0,0,0,.25);
+  }
+
+  .modal-fondo{
+    position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:flex-end;
+    z-index:50;
+  }
+  .modal{
+    background:#fff; width:100%; border-radius:16px 16px 0 0; padding:18px;
+    max-height:85vh; overflow-y:auto;
+  }
+  .modal h2{margin-top:0; font-size:17px;}
+
+  .dia-cuadrante{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 4px; border-bottom:1px solid #f0f0f0;
+  }
+  .dia-cuadrante:last-child{border-bottom:none;}
+  .dia-fecha{font-size:13px; font-weight:600; width:90px;}
+  .dia-agente{font-size:13px; color:var(--azul);}
+  .mes-selector{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .mes-selector button{background:none;border:1px solid var(--gris-borde); border-radius:8px; padding:6px 10px;}
+  .mes-selector span{font-weight:600;}
+
+  .bitacora{margin-top:8px; border-top:1px dashed var(--gris-borde); padding-top:6px;}
+  .nota{font-size:12px; color:#4b5563; margin-bottom:4px;}
+  .nota b{color:var(--azul);}
+  .nota .fecha-nota{color:#9ca3af;}
+
+  #loginView{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card{max-width:340px; width:100%; text-align:center;}
+  .login-card img.escudo-login{height:80px; margin-bottom:10px;}
+  .login-card h1{color:var(--azul); text-align:center; margin-top:0;}
+  .error-msg{color:var(--rojo); font-size:13px; margin-bottom:8px;}
+  small.ayuda{color:#9ca3af; font-size:11px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView">
+  <div class="card login-card">
+    <img src="escudo.png" alt="Escudo Policía Local" class="escudo-login">
+    <h1>Gestor Cájar</h1>
+    <div id="loginError" class="error-msg"></div>
+    <label>Usuario</label>
+    <input id="loginUsuario" autocomplete="username">
+    <label>Contraseña</label>
+    <input id="loginPassword" type="password" autocomplete="current-password">
+    <button class="accion" style="width:100%" onclick="hacerLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appView" class="oculto">
+  <header>
+    <div class="marca">
+      <img src="escudo.png" alt="Escudo Policía Local" class="escudo">
+      <h1>Gestor Cájar</h1>
+    </div>
+    <div>
+      <span class="usuario" id="usuarioActual"></span> ·
+      <button id="logoutBtn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button id="tabCuadranteBtn" class="activo" onclick="cambiarTab('cuadrante')">Cuadrante</button>
+    <button id="tabEscritosBtn" onclick="cambiarTab('escritos')">Escritos</button>
+  </nav>
+
+  <main>
+    <!-- VISTA CUADRANTE -->
+    <section id="vistaCuadrante">
+      <div class="mes-selector">
+        <button onclick="cambiarMes(-1)">‹</button>
+        <span id="mesLabel"></span>
+        <button onclick="cambiarMes(1)">›</button>
+      </div>
+
+      <div class="card" id="cambiosPendientesCard" style="display:none;">
+        <h3>Cambios pendientes de tu respuesta</h3>
+        <div id="listaCambiosPendientes"></div>
+      </div>
+
+      <div class="card">
+        <div id="listaCuadrante">Cargando…</div>
+      </div>
+    </section>
+
+    <!-- VISTA ESCRITOS -->
+    <section id="vistaEscritos" class="oculto">
+      <div class="fila" style="margin-bottom:10px;">
+        <select id="filtroEstado" onchange="renderEscritos()">
+          <option value="">Todos</option>
+          <option value="Pendiente">Pendientes</option>
+          <option value="En curso">En curso</option>
+          <option value="Hecho">Hechos</option>
+        </select>
+      </div>
+      <div id="listaEscritos">Cargando…</div>
+    </section>
+  </main>
+
+  <button class="fab" id="fabBtn" onclick="abrirModalSegunTab()">+</button>
+</div>
+
+<!-- MODAL: nueva asignación cuadrante -->
+<div id="modalAsignar" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Asignar agente a Cájar</h2>
+    <label>Fecha</label>
+    <input type="date" id="asigFecha">
+    <label>Agente</label>
+    <select id="asigAgente"></select>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAsignar')">Cancelar</button>
+      <button class="accion" onclick="guardarAsignacion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: proponer cambio -->
+<div id="modalCambio" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Proponer cambio de turno</h2>
+    <input type="hidden" id="cambioFecha">
+    <p style="font-size:13px;">Día: <b id="cambioFechaTexto"></b> — actualmente: <b id="cambioAgenteActual"></b></p>
+    <label>¿Quién lo cubre en tu lugar?</label>
+    <select id="cambioAgenteNuevo"></select>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalCambio')">Cancelar</button>
+      <button class="accion" onclick="enviarPropuestaCambio()">Proponer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: alta de escrito -->
+<div id="modalEscrito" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Nuevo escrito</h2>
+    <div id="escritoError" class="error-msg"></div>
+    <label>Nº de registro (Gestiona)</label>
+    <input id="escNumRegistro">
+    <label>Fecha de entrada</label>
+    <input type="date" id="escFecha">
+    <label>Solicitante</label>
+    <input id="escSolicitante">
+    <label>Tipo de intervención</label>
+    <select id="escTipo">
+      <option>Informe</option>
+      <option>Requerimiento</option>
+      <option>Inspección</option>
+      <option>Otro</option>
+    </select>
+    <label>Descripción breve</label>
+    <textarea id="escDescripcion" rows="3"></textarea>
+    <label>Enlace al documento (Drive, foto...)</label>
+    <input id="escDocumentoUrl" placeholder="https://...">
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalEscrito')">Cancelar</button>
+      <button class="accion" onclick="guardarEscrito()">Dar de alta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nueva nota de seguimiento -->
+<div id="modalNota" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Añadir nota de seguimiento</h2>
+    <input type="hidden" id="notaEscritoId">
+    <label>¿Qué se ha hecho y qué queda pendiente?</label>
+    <textarea id="notaTexto" rows="4" placeholder="Ej: Visitada la vivienda, no había nadie. Pendiente volver a intentar por la tarde."></textarea>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalNota')">Cancelar</button>
+      <button class="accion" onclick="guardarNota()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: cerrar escrito -->
+<div id="modalCerrar" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Marcar como hecho</h2>
+    <input type="hidden" id="cerrarId">
+    <label>Enlace al informe (opcional)</label>
+    <input id="cerrarInformeUrl" placeholder="https://...">
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalCerrar')">Cancelar</button>
+      <button class="accion" onclick="confirmarCierre()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+}
+</script>
+</body>
+</html>
