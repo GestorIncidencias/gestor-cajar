@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gestor Cájar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f3a5f">
+<style>
+  :root{
+    --azul:#1f3a5f; --azul-claro:#3b5b82;
+    --verde-tab:#0f766e; --verde-tab-claro:#ccfbf1;
+    --gris-fondo:#f3f4f6; --gris-borde:#d1d5db; --texto:#1f2937;
+    --verde:#15803d; --ambar:#b45309; --rojo:#b91c1c; --blanco:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--gris-fondo); color:var(--texto); padding-bottom:70px;}
+
+  header{background:var(--azul); color:#fff; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10;}
+  header .marca{display:flex; align-items:center; gap:10px;}
+  header .escudo{height:34px; width:auto; border-radius:4px; background:#fff; padding:2px;}
+  header h1{font-size:16px; margin:0; font-weight:600; line-height:1.1;}
+  #logoutBtn{background:none;border:none;color:#fff;font-size:12px;text-decoration:underline;padding:0;}
+
+  /* Pestañas principales como botones diferenciados */
+  nav.tabs{display:flex; gap:8px; background:#fff; padding:10px 12px; border-bottom:1px solid var(--gris-borde); position:sticky; top:54px; z-index:9;}
+  nav.tabs button{
+    flex:1; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700;
+    border:2px solid transparent; background:#eef2f6; color:#475569;
+  }
+  nav.tabs button.tab-cuadrante.activo{background:var(--azul); color:#fff; border-color:var(--azul);}
+  nav.tabs button.tab-registros.activo{background:var(--verde-tab); color:#fff; border-color:var(--verde-tab);}
+  nav.tabs button.tab-avisos.activo{background:#b45309; color:#fff; border-color:#b45309;}
+  nav.tabs button.tab-agentes.activo{background:#7c3aed; color:#fff; border-color:#7c3aed;}
+  nav.tabs button.tab-firmas.activo{background:#0891b2; color:#fff; border-color:#0891b2;}
+
+  /* Sub-pestañas del cuadrante */
+  nav.subtabs{display:flex; gap:8px; overflow-x:auto; padding:10px 12px 0; flex-wrap:wrap;}
+  nav.subtabs button{
+    flex:0 0 auto; padding:11px 16px; border-radius:12px; font-size:14px; font-weight:700;
+    border:2px solid var(--gris-borde); background:#fff; color:#334155; white-space:nowrap;
+  }
+  nav.subtabs button.activo{background:var(--azul-claro); color:#fff; border-color:var(--azul-claro);}
+
+  #subtabsCuadrante button:nth-child(1){background:#3b82f6; color:#fff; border-color:#3b82f6;}
+  #subtabsCuadrante button:nth-child(2){background:#14b8a6; color:#fff; border-color:#14b8a6;}
+  #subtabsCuadrante button:nth-child(3){background:#db2777; color:#fff; border-color:#db2777;}
+  #subtabsCuadrante button:nth-child(4){background:#d97706; color:#fff; border-color:#d97706;}
+  #subtabsCuadrante button:nth-child(5){background:#8b5cf6; color:#fff; border-color:#8b5cf6;}
+  #subtabsCuadrante button:nth-child(1).activo{background:var(--azul); border-color:var(--azul); color:#fff;}
+  #subtabsCuadrante button:nth-child(2).activo{background:#0f766e; border-color:#0f766e; color:#fff;}
+  #subtabsCuadrante button:nth-child(3).activo{background:#9d174d; border-color:#9d174d; color:#fff;}
+  #subtabsCuadrante button:nth-child(4).activo{background:#92400e; border-color:#92400e; color:#fff;}
+  #subtabsCuadrante button:nth-child(5).activo{background:#6d28d9; border-color:#6d28d9; color:#fff;}
+
+  .filtro-grande button[data-estado=""]{background:#475569; color:#fff; border-color:#475569;}
+  .filtro-grande button[data-estado="Pendiente"]{background:#d97706; color:#fff; border-color:#d97706;}
+  .filtro-grande button[data-estado="En curso"]{background:#2563eb; color:#fff; border-color:#2563eb;}
+  .filtro-grande button[data-estado="Hecho"]{background:#16a34a; color:#fff; border-color:#16a34a;}
+  .filtro-grande button[data-estado=""].activo{background:var(--azul); border-color:var(--azul); color:#fff;}
+  .filtro-grande button[data-estado="Pendiente"].activo{background:#92400e; border-color:#92400e; color:#fff;}
+  .filtro-grande button[data-estado="En curso"].activo{background:#1d4ed8; border-color:#1d4ed8; color:#fff;}
+  .filtro-grande button[data-estado="Hecho"].activo{background:var(--verde); border-color:var(--verde); color:#fff;}
+
+  main{padding:14px;}
+  .oculto{display:none !important;}
+
+  .card{background:#fff; border:1px solid var(--gris-borde); border-radius:10px; padding:14px; margin-bottom:10px;}
+  .card-aviso{border-left:4px solid var(--ambar); box-shadow:0 1px 4px rgba(0,0,0,0.10);}
+  .card-aviso h3{font-size:16px;}
+  .aviso-texto{font-size:14.5px; color:var(--texto); line-height:1.55; font-weight:500;}
+  .card h3{margin:0 0 6px; font-size:15px;}
+  .fila{display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;}
+  .etiqueta{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600;}
+  .etq-pendiente{background:#fef3c7; color:var(--ambar);}
+  .etq-curso{background:#dbeafe; color:#1d4ed8;}
+  .etq-hecho{background:#dcfce7; color:var(--verde);}
+  .etq-urgente{background:#fee2e2; color:var(--rojo);}
+  .etq-sin-asignar{background:#f3f4f6; color:#6b7280;}
+
+  button.accion{background:var(--azul); color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; position:relative;}
+  button.secundaria{background:#fff; color:var(--azul); border:1px solid var(--azul); border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600;}
+  button.pequena{padding:6px 10px; font-size:12px; border-radius:6px;}
+  button:disabled{opacity:.6;}
+
+  input, select, textarea{width:100%; padding:10px; border:1px solid var(--gris-borde); border-radius:8px; font-size:14px; margin-bottom:8px; font-family:inherit;}
+  label{font-size:12px; color:#6b7280; display:block; margin-bottom:2px;}
+
+  .fab{
+    position:fixed; bottom:20px; right:20px; z-index:20;
+    display:flex; align-items:center; gap:8px;
+    background:var(--azul); color:#fff; border:none; border-radius:28px;
+    padding:0 20px 0 18px; height:52px; box-shadow:0 4px 10px rgba(0,0,0,.25);
+    font-size:14px; font-weight:700;
+  }
+  .fab .icono{font-size:22px; line-height:1;}
+
+  .modal-fondo{position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:flex-end; justify-content:center; z-index:50;}
+  .modal{background:#fff; width:100%; max-width:480px; border-radius:16px 16px 0 0; padding:18px; max-height:85vh; overflow-y:auto;}
+  @media (min-width:600px){ .modal-fondo{align-items:center;} .modal{border-radius:16px;} }
+  .modal h2{margin-top:0; font-size:17px;}
+
+  .fila-turno{display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid #f0f0f0; gap:8px; flex-wrap:wrap;}
+  .fila-turno:last-child{border-bottom:none;}
+
+  .fila-agente-admin{display:grid; grid-template-columns:1fr 90px 90px auto; align-items:center; gap:8px; padding:10px 4px; border-bottom:1px solid #f0f0f0; font-size:13px;}
+  .fila-agente-admin:last-child{border-bottom:none;}
+  .fila-agente-admin.inactivo{opacity:.5;}
+  .fila-agente-admin .col-nombre{font-weight:600;}
+  .fila-agente-admin .col-usuario{color:#6b7280;}
+  .fila-agente-admin .col-acciones{display:flex; gap:6px; justify-content:flex-end;}
+
+  .lista-checks{display:flex; flex-direction:column; gap:6px; margin-bottom:10px;}
+  .check-agente{display:flex; align-items:center; gap:8px; font-size:13px;}
+  .check-agente input{width:auto; margin:0;}
+
+  .toggle-periodo{display:flex; gap:6px; margin-bottom:10px;}
+  .toggle-periodo button{flex:1; padding:8px; border-radius:8px; border:1px solid var(--gris-borde); background:#fff; font-size:13px; font-weight:600; color:#6b7280;}
+  .toggle-periodo button.activo{background:var(--azul); color:#fff; border-color:var(--azul);}
+
+  .fila-ajuste-equidad{display:grid; grid-template-columns:minmax(100px,180px) 70px 70px auto; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f0f0f0; font-size:12px;}
+  .fila-ajuste-equidad:last-child{border-bottom:none;}
+  .fila-ajuste-equidad input{margin-bottom:0; padding:6px;}
+  .cabecera-ajuste-equidad{display:grid; grid-template-columns:minmax(100px,180px) 70px 70px auto; gap:10px; padding:0 4px 4px; font-size:11px; color:#6b7280; font-weight:600;}
+
+  .resumen-indisp{columns:3; column-gap:16px;}
+  .resumen-indisp p{break-inside:avoid; margin:0 0 8px;}
+  .turno-fecha{font-size:13px; font-weight:600; width:80px;}
+  .turno-horario{font-size:12px; color:#6b7280; width:90px;}
+  .turno-agente{font-size:13px; color:var(--azul); flex:1;}
+
+  .calendario-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .calendario{display:grid; grid-template-columns:repeat(7,minmax(84px,1fr)); gap:5px; min-width:610px;}
+  .cal-cabecera{font-size:11px; font-weight:700; color:#6b7280; text-align:center; padding-bottom:4px; text-transform:uppercase;}
+  .cal-celda{background:#fff; border:1px solid var(--gris-borde); border-radius:8px; padding:5px; min-height:88px;}
+  .cal-celda.vacia{background:transparent; border-color:transparent;}
+  .cal-num{font-size:12px; font-weight:700; margin-bottom:4px; color:#374151;}
+  .cal-celda.clicable{cursor:pointer;}
+  .cal-celda.clicable:hover{background:#f8fafc; border-color:var(--azul-claro);}
+  .turno-chip{display:block; border-radius:8px; padding:6px 8px; margin-bottom:4px; font-size:11px; color:#fff; cursor:pointer; line-height:1.4;}
+  .turno-chip .chip-hora{display:block; font-weight:700; font-size:11.5px;}
+  .turno-chip .chip-agentes{display:block; opacity:.95; font-size:10px; margin-top:1px;}
+  .turno-chip.sin-asignar{background:#94a3b8;}
+
+  .card.registro-pendiente{border-left:5px solid var(--ambar);}
+  .card.registro-curso{border-left:5px solid #1d4ed8;}
+  .card.registro-hecho{border-left:5px solid var(--verde);}
+  .card.registro-urgente{border-left:5px solid var(--rojo);}
+  .card.aviso-caducado{opacity:.6;}
+  .leyenda-agentes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .leyenda-item{display:flex; align-items:center; gap:5px; font-size:12px;}
+  .leyenda-punto{width:12px; height:12px; border-radius:4px; display:inline-block;}
+
+  .mes-selector{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .mes-selector button{background:none;border:1px solid var(--gris-borde); border-radius:8px; padding:6px 10px;}
+  .mes-selector span{
+    font-weight:700; font-size:15px; color:#fff; background:var(--azul);
+    padding:8px 18px; border-radius:10px;
+  }
+
+  #loginView{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .login-card{max-width:340px; width:100%; text-align:center;}
+  .login-card img.escudo-login{height:80px; margin-bottom:10px;}
+  .login-card h1{color:var(--azul); text-align:center; margin-top:0;}
+  .error-msg{color:var(--rojo); font-size:13px; margin-bottom:8px;}
+
+  .dia-disp{display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; margin:3px; border-radius:10px; border:1px solid var(--gris-borde); font-size:13px; font-weight:600; background:#fff; color:#374151;}
+  .dia-disp.no-puedo{background:#fee2e2; border-color:var(--rojo); color:var(--rojo);}
+  .rejilla-dias{display:flex; flex-wrap:wrap;}
+
+  .barra-equidad{margin-bottom:14px;}
+  .barra-equidad .nombre{font-size:13px; font-weight:600; margin-bottom:3px;}
+  .barra-fondo{background:#e5e7eb; border-radius:6px; overflow:hidden; height:18px; display:flex;}
+  .barra-ls{background:var(--azul-claro); height:100%;}
+  .barra-fs{background:var(--ambar); height:100%;}
+  .leyenda-equidad{font-size:11px; color:#6b7280; margin-top:2px;}
+  .barra-trabajos{background:#0891b2; height:100%;}
+  .barra-fondo.con-media{position:relative;}
+  .linea-media{position:absolute; top:-3px; bottom:-3px; width:2px; background:#b91c1c; z-index:2;}
+  .leyenda-media{font-size:11px; color:#b91c1c; margin-top:2px;}
+
+  .bitacora{margin-top:8px; border-top:1px dashed var(--gris-borde); padding-top:6px;}
+  .nota{font-size:12px; color:#4b5563; margin-bottom:4px;}
+  .nota b{color:var(--azul);}
+  .nota .fecha-nota{color:#9ca3af;}
+
+  .spinner{display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:girar .7s linear infinite; margin-right:6px; vertical-align:-2px;}
+  .spinner.oscuro{border-color:rgba(31,58,95,.3); border-top-color:var(--azul);}
+  @keyframes girar{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView">
+  <div class="card login-card">
+    <img src="escudo.png" alt="Escudo Policía Local" class="escudo-login">
+    <h1>Gestor Cájar</h1>
+
+    <div id="bloqueLoginNormal">
+      <div id="loginError" class="error-msg"></div>
+      <label>Usuario</label>
+      <input id="loginUsuario" autocomplete="username">
+      <label>Contraseña</label>
+      <input id="loginPassword" type="password" autocomplete="current-password">
+      <button class="accion" id="loginBtn" style="width:100%" onclick="hacerLogin()">Entrar</button>
+      <p style="text-align:center;margin-top:10px;">
+        <a href="#" style="font-size:12px;color:var(--azul);" onclick="mostrarRecuperar(true); return false;">¿Olvidaste tu contraseña?</a>
+      </p>
+    </div>
+
+    <div id="bloqueRecuperar" class="oculto">
+      <div id="recuperarError" class="error-msg"></div>
+      <p style="font-size:12px;color:#6b7280;">Introduce tu usuario y el código de un solo uso que te haya dado el administrador.</p>
+      <label>Usuario</label>
+      <input id="recUsuario" autocomplete="username">
+      <label>Código</label>
+      <input id="recCodigo" inputmode="numeric" placeholder="000000">
+      <button class="accion" id="recuperarBtn" style="width:100%" onclick="hacerLoginConCodigo()">Entrar con código</button>
+      <p style="text-align:center;margin-top:10px;">
+        <a href="#" style="font-size:12px;color:var(--azul);" onclick="mostrarRecuperar(false); return false;">Volver al login normal</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: cambiar mi contraseña (obligatorio tras login con código, o voluntario desde la cabecera) -->
+<div id="modalCambiarPassword" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Cambia tu contraseña</h2>
+    <p id="cambiarPasswordTexto" style="font-size:13px;color:#6b7280;">Has entrado con un código de un solo uso. Ponte una contraseña nueva para tu usuario.</p>
+    <div id="cambiarPasswordError" class="error-msg"></div>
+    <label>Nueva contraseña</label>
+    <input id="nuevaPasswordPropia" type="text">
+    <div class="fila">
+      <button class="secundaria oculto" id="cancelarPasswordPropiaBtn" onclick="cerrarModal('modalCambiarPassword')">Cancelar</button>
+      <button class="accion" id="guardarPasswordPropiaBtn" onclick="guardarPasswordPropia()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appView" class="oculto">
+  <header>
+    <div class="marca">
+      <img src="escudo.png" alt="Escudo Policía Local" class="escudo">
+      <h1>Gestor Cájar</h1>
+    </div>
+    <div>
+      <span class="usuario" id="usuarioActual"></span> ·
+      <a href="#" onclick="abrirModalCambiarPasswordVoluntario(); return false;">Cambiar contraseña</a> ·
+      <button id="logoutBtn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button id="tabCuadranteBtn" class="tab-cuadrante activo" onclick="cambiarTab('cuadrante')">Cuadrante</button>
+    <button id="tabRegistrosBtn" class="tab-registros" onclick="cambiarTab('registros')">Registros Gestiona</button>
+    <button id="tabAvisosBtn" class="tab-avisos" onclick="cambiarTab('avisos')">Avisos</button>
+    <button id="tabAgentesBtn" class="tab-agentes oculto" onclick="cambiarTab('agentes')">Agentes</button>
+    <button id="tabFirmasBtn" class="tab-firmas" onclick="cambiarTab('firmas')">Carga de trabajo</button>
+  </nav>
+
+  <!-- SUB-PESTAÑAS DE CUADRANTE -->
+  <nav class="subtabs" id="subtabsCuadrante">
+    <button class="activo" onclick="cambiarSubtab('turnos')">Turnos</button>
+    <button onclick="cambiarSubtab('disponibilidad')">Mi disponibilidad</button>
+    <button onclick="cambiarSubtab('permutas')">Permutas</button>
+    <button onclick="cambiarSubtab('deudas')">Deudas</button>
+    <button onclick="cambiarSubtab('equidad')">Equidad</button>
+  </nav>
+
+  <main>
+    <!-- VISTA CUADRANTE -->
+    <section id="vistaCuadrante">
+      <div class="mes-selector">
+        <button onclick="cambiarMes(-1)">‹</button>
+        <span id="mesLabel"></span>
+        <button onclick="cambiarMes(1)">›</button>
+      </div>
+
+      <!-- SUB-VISTA: TURNOS -->
+      <div id="subvistaTurnos">
+        <div class="card oculto" id="cardResumenIndisp">
+          <h3>Quién no puede este mes</h3>
+          <div id="resumenIndispAdmin"></div>
+        </div>
+        <div class="card">
+          <div class="calendario-wrap"><div id="listaTurnos">Cargando…</div></div>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA: MI DISPONIBILIDAD -->
+      <div id="subvistaDisponibilidad" class="oculto">
+        <div class="card">
+          <h3>¿Qué días NO puedes ir a Cájar este mes?</h3>
+          <p style="font-size:12px;color:#6b7280;">Por defecto se entiende que estás disponible. Toca los turnos de los días que NO puedas y confirma al terminar.</p>
+          <div class="calendario-wrap"><div id="rejillaDisponibilidad"></div></div>
+          <div class="fila" style="margin-top:10px;">
+            <span id="avisoCambiosDisp" style="font-size:12px;color:var(--ambar);"></span>
+            <button class="accion" id="confirmarDispBtn" onclick="confirmarDisponibilidad()" disabled>Confirmar cambios</button>
+          </div>
+        </div>
+        <div class="card oculto" id="cardIndispAdmin">
+          <h3>Indisponibilidades de todos (solo admin)</h3>
+          <div id="listaIndispAdmin"></div>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA: PERMUTAS -->
+      <div id="subvistaPermutas" class="oculto">
+        <div class="fila" style="margin-bottom:10px;">
+          <span></span>
+          <button class="accion" id="proponerPermutaAbrirBtn" onclick="abrirModalPermuta(this)">+ Proponer permuta</button>
+        </div>
+        <div class="card" id="permutasPendientesCard" style="display:none;">
+          <h3>Permutas pendientes de tu respuesta</h3>
+          <div id="listaPermutasPendientes"></div>
+        </div>
+        <div class="card">
+          <h3>Tus propuestas enviadas</h3>
+          <div id="listaMisPermutas"><p style="font-size:13px;color:#9ca3af;">No has propuesto ninguna permuta.</p></div>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA: DEUDAS -->
+      <div id="subvistaDeudas" class="oculto">
+        <div class="card">
+          <h3>Te deben un turno</h3>
+          <div id="listaMeDeben"><p style="font-size:13px;color:#9ca3af;">Nada pendiente.</p></div>
+        </div>
+        <div class="card">
+          <h3>Debes un turno</h3>
+          <div id="listaDebo"><p style="font-size:13px;color:#9ca3af;">Nada pendiente.</p></div>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA: EQUIDAD -->
+      <div id="subvistaEquidad" class="oculto">
+        <div class="card">
+          <h3>Horas acumuladas por agente</h3>
+          <p style="font-size:12px;color:#6b7280;">Solo informativa — para que todos veáis las horas de todos en cada momento.</p>
+          <div class="toggle-periodo">
+            <button id="btnEquidadMes" class="activo" onclick="cambiarPeriodoEquidad('mes')">Este mes</button>
+            <button id="btnEquidadAnio" onclick="cambiarPeriodoEquidad('anio')">Acumulado del año</button>
+          </div>
+          <p class="leyenda-equidad"><span style="color:var(--azul-claro);">■</span> Entre semana (L-J) &nbsp; <span style="color:var(--ambar);">■</span> Fin de semana (V-S-D)</p>
+          <div id="listaEquidad" style="margin-top:10px;">Cargando…</div>
+        </div>
+        <div class="card oculto" id="cardAjustesEquidad">
+          <h3 onclick="toggleAjustesEquidad()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+            <span>Horas previas del año (antes de usar la app)</span>
+            <span id="flechaAjustesEquidad">▸</span>
+          </h3>
+          <div id="cuerpoAjustesEquidad" class="oculto">
+            <p style="font-size:12px;color:#6b7280;">Añade aquí las horas ya trabajadas de enero hasta que empezasteis a usar esta app, para que se sumen al acumulado del año.</p>
+            <div id="listaAjustesEquidad"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA REGISTROS GESTIONA -->
+    <section id="vistaRegistros" class="oculto">
+      <nav class="subtabs filtro-grande" style="padding:0 0 10px;">
+        <button class="activo" data-estado="" onclick="filtrarEscritos('', this)">Todos</button>
+        <button data-estado="Pendiente" onclick="filtrarEscritos('Pendiente', this)">Pendientes</button>
+        <button data-estado="En curso" onclick="filtrarEscritos('En curso', this)">En curso</button>
+        <button data-estado="Hecho" onclick="filtrarEscritos('Hecho', this)">Hechos</button>
+      </nav>
+      <div class="fila" style="padding:0 0 10px;justify-content:flex-end;">
+        <button class="pequena secundaria" id="ordenEscritosBtn" onclick="alternarOrdenEscritos()">↑ Más antiguos primero</button>
+      </div>
+      <div id="listaEscritos">Cargando…</div>
+    </section>
+
+    <!-- VISTA AVISOS -->
+    <section id="vistaAvisos" class="oculto">
+      <div id="listaAvisos">Cargando…</div>
+    </section>
+
+    <!-- VISTA AGENTES (admin) -->
+    <section id="vistaAgentes" class="oculto">
+      <div class="card">
+        <h3>Agentes dados de alta</h3>
+        <div id="listaAgentesAdmin">Cargando…</div>
+      </div>
+    </section>
+
+    <!-- VISTA TRABAJOS (estadística de firmas, equilibrio de carga) -->
+    <section id="vistaFirmas" class="oculto">
+      <div class="card">
+        <h3>Carga de trabajo por agente</h3>
+        <p style="font-size:12px;color:#6b7280;">Cuenta los registros de Gestiona marcados como Hecho, atribuidos a quien lo cerró y a quien estuviera de turno con él ese día — igual que constan firmados en Gestiona.</p>
+        <div class="toggle-periodo">
+          <button id="btnFirmasMes" class="activo" onclick="cambiarPeriodoFirmas('mes')">Este mes</button>
+          <button id="btnFirmasTotal" onclick="cambiarPeriodoFirmas('total')">Acumulado</button>
+        </div>
+        <div class="mes-selector" id="mesSelectorFirmas" style="margin-top:8px;">
+          <button onclick="cambiarMesFirmas(-1)">‹</button>
+          <span id="mesLabelFirmas"></span>
+          <button onclick="cambiarMesFirmas(1)">›</button>
+        </div>
+        <p class="leyenda-media">▎ Media del grupo</p>
+        <div id="listaFirmas" style="margin-top:10px;">Cargando…</div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fabBtn" onclick="abrirModalSegunTab()">
+    <span class="icono">+</span><span id="fabTexto">Nuevo</span>
+  </button>
+</div>
+
+<!-- MODAL: gestionar turnos de un día -->
+<div id="modalDia" class="modal-fondo oculto">
+  <div class="modal">
+    <h2 id="modalDiaTitulo">Turnos del día</h2>
+    <div id="modalDiaLista"></div>
+    <div class="fila" style="margin-top:12px;">
+      <button class="secundaria" onclick="cerrarModal('modalDia')">Cerrar</button>
+      <button class="accion" onclick="nuevoTurnoDesdeDia()">+ Nuevo turno este día</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nuevo turno (admin) -->
+<div id="modalTurno" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Nuevo turno en Cájar</h2>
+    <label>Fecha</label>
+    <input type="date" id="turnoFecha">
+    <label>Hora de inicio</label>
+    <input type="time" id="turnoHoraInicio">
+    <label>Hora de fin</label>
+    <input type="time" id="turnoHoraFin">
+    <label>Agentes (puedes marcar varios, o ninguno para dejarlo sin asignar)</label>
+    <div class="lista-checks" id="turnoAgentesChecks"></div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalTurno')">Cancelar</button>
+      <button class="accion" id="guardarTurnoBtn" onclick="guardarTurno()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: asignar/cambiar agente de un turno (admin) -->
+<div id="modalAsignarTurno" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Asignar agentes</h2>
+    <input type="hidden" id="asigTurnoId">
+    <p style="font-size:13px;" id="asigTurnoInfo"></p>
+    <div id="asigInteresados" style="font-size:12px;color:#6b7280;margin-bottom:8px;"></div>
+    <label>Agentes (puedes marcar varios)</label>
+    <div class="lista-checks" id="asigAgentesChecks"></div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAsignarTurno')">Cancelar</button>
+      <button class="accion" id="guardarAsigBtn" onclick="guardarAsignacionTurno()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: proponer permuta -->
+<div id="modalPermuta" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Proponer permuta</h2>
+    <div id="permutaError" class="error-msg"></div>
+    <label>Mes</label>
+    <input type="month" id="permutaMes" onchange="cargarOpcionesFechaPropia(); if (tipoPermutaActual==='bidireccional') cargarOpcionesFechaDestino();">
+    <label>Tu turno que cedes</label>
+    <select id="permutaFechaPropia"><option value="">Elige el mes primero…</option></select>
+    <label>Agente al que se lo propones</label>
+    <select id="permutaAgenteNuevo" onchange="if (tipoPermutaActual==='bidireccional') cargarOpcionesFechaDestino();"></select>
+    <label>Tipo de permuta</label>
+    <div class="toggle-periodo">
+      <button type="button" id="btnPermutaUni" class="activo" onclick="cambiarTipoPermuta('unidireccional')">Unidireccional (queda deuda)</button>
+      <button type="button" id="btnPermutaBi" onclick="cambiarTipoPermuta('bidireccional')">Bidireccional (cambio directo)</button>
+    </div>
+    <div id="bloquePermutaDestino" class="oculto">
+      <label>Día suyo que recibes a cambio (mismo mes)</label>
+      <select id="permutaFechaDestino"><option value="">Elige antes al agente…</option></select>
+    </div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalPermuta')">Cancelar</button>
+      <button class="accion" id="proponerPermutaBtn" onclick="enviarPropuestaPermuta()">Proponer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: alta de registro Gestiona -->
+<div id="modalEscrito" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Nuevo registro</h2>
+    <div id="escritoError" class="error-msg"></div>
+    <label>Fecha de entrada</label>
+    <input type="date" id="escFecha">
+    <label>Nº de registro (Gestiona)</label>
+    <input id="escNumRegistro" placeholder="ej: 745/26">
+    <label>Solicitud</label>
+    <select id="escTipo">
+      <option>Vado</option><option>Señalización</option><option>Quejas vecinales</option>
+      <option>Informe</option><option>Requerimiento</option><option>Inspección</option><option>Otro</option>
+    </select>
+    <label>Nombre del solicitante</label>
+    <input id="escSolicitante">
+    <label>DNI</label>
+    <input id="escDni" placeholder="12345678A">
+    <label>Teléfono o email de contacto</label>
+    <input id="escContacto" placeholder="600 000 000 / correo@ejemplo.com">
+    <label>Descripción breve</label>
+    <textarea id="escDescripcion" rows="3"></textarea>
+    <label>Documento (PDF de Gestiona) — puedes elegir varios</label>
+    <input type="file" id="escArchivo" accept="application/pdf" multiple>
+    <label>...o enlace al documento (Drive, foto...)</label>
+    <input id="escDocumentoUrl" placeholder="https://...">
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalEscrito')">Cancelar</button>
+      <button class="accion" id="guardarEscritoBtn" onclick="guardarEscrito()">Dar de alta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nueva nota de seguimiento -->
+<div id="modalNota" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Añadir nota de seguimiento</h2>
+    <input type="hidden" id="notaEscritoId">
+    <label>¿Qué se ha hecho y qué queda pendiente?</label>
+    <textarea id="notaTexto" rows="4" placeholder="Ej: Visitada la vivienda, no había nadie. Pendiente volver a intentar por la tarde."></textarea>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalNota')">Cancelar</button>
+      <button class="accion" id="guardarNotaBtn" onclick="guardarNota()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: añadir documento a un registro ya existente -->
+<div id="modalAgregarDocumento" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Añadir documento</h2>
+    <input type="hidden" id="agregarDocEscritoId">
+    <label>Documento (PDF, foto...) — puedes elegir varios</label>
+    <input type="file" id="agregarDocArchivo" accept="application/pdf,image/*" multiple>
+    <label>...o enlace (Drive, Gestiona...)</label>
+    <input id="agregarDocUrl" placeholder="https://...">
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAgregarDocumento')">Cancelar</button>
+      <button class="accion" id="guardarDocumentoBtn" onclick="guardarDocumentoAgregado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: cerrar escrito -->
+<div id="modalCerrar" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Marcar como hecho</h2>
+    <input type="hidden" id="cerrarId">
+    <label>Informe (PDF)</label>
+    <input type="file" id="cerrarInformeArchivo" accept="application/pdf">
+    <label>...o enlace al informe (Drive, Gestiona...)</label>
+    <input id="cerrarInformeUrl" placeholder="https://...">
+    <div id="bloqueFirmantes" class="oculto">
+      <label>¿Con quién firmas este informe? (estabais varios de turno)</label>
+      <div id="listaFirmantesOpciones"></div>
+    </div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalCerrar')">Cancelar</button>
+      <button class="accion" id="confirmarCierreBtn" onclick="confirmarCierre()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: editar firmantes de un registro ya Hecho (admin) -->
+<div id="modalEditarFirmantes" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Editar quién firma este informe</h2>
+    <input type="hidden" id="editarFirmantesId">
+    <div id="listaEditarFirmantesOpciones"></div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalEditarFirmantes')">Cancelar</button>
+      <button class="accion" id="guardarFirmantesBtn" onclick="guardarFirmantesEditados()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: asignar un registro Pendiente a uno o varios agentes (administrador) -->
+<div id="modalAsignarEscrito" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Asignar registro</h2>
+    <p style="font-size:12px;color:#374151;">Pasa directamente a "En curso" a nombre de quien elijas, sin que tengan que reclamarlo ellos.</p>
+    <input type="hidden" id="asignarEscritoId">
+    <label>¿A quién se asigna?</label>
+    <div id="listaAsignarOpciones"></div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAsignarEscrito')">Cancelar</button>
+      <button class="accion" id="confirmarAsignarBtn" onclick="confirmarAsignarEscrito()">Asignar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: marcar hecho por el administrador (registro que se quedó sin cerrar) -->
+<div id="modalAdminCerrar" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Marcar hecho (administrador)</h2>
+    <p style="font-size:12px;color:#374151;">Para un trabajo que se hizo realmente pero nunca se registró como Hecho en la app. Elige quién lo hizo — no depende de quién esté de turno hoy.</p>
+    <input type="hidden" id="adminCerrarId">
+    <label>Informe (PDF, opcional si no se subió en su momento)</label>
+    <input type="file" id="adminCerrarInformeArchivo" accept="application/pdf">
+    <label>...o enlace al informe (Drive, Gestiona...)</label>
+    <input id="adminCerrarInformeUrl" placeholder="https://...">
+    <label>¿Quién hizo este trabajo?</label>
+    <div id="listaAdminFirmantesOpciones"></div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAdminCerrar')">Cancelar</button>
+      <button class="accion" id="confirmarAdminCierreBtn" onclick="confirmarAdminCierre()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nuevo/editar agente (admin) -->
+<!-- MODAL: nuevo aviso -->
+<div id="modalAviso" class="modal-fondo oculto">
+  <div class="modal">
+    <h2>Nuevo aviso</h2>
+    <div id="avisoError" class="error-msg"></div>
+    <label>Título</label>
+    <input id="avTitulo" placeholder="ej: Alcaldía, Concejalía, requerimiento vecinal, seguimiento...">
+    <label>Texto</label>
+    <textarea id="avTexto" rows="4"></textarea>
+    <label>Documento o foto (opcional)</label>
+    <input type="file" id="avArchivo" accept="application/pdf,image/*">
+    <label>Caduca el (opcional)</label>
+    <input type="date" id="avCaducidad">
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAviso')">Cancelar</button>
+      <button class="accion" id="guardarAvisoBtn" onclick="guardarAviso()">Publicar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalAgente" class="modal-fondo oculto">
+  <div class="modal">
+    <h2 id="tituloModalAgente">Nuevo agente</h2>
+    <div id="agenteError" class="error-msg"></div>
+    <input type="hidden" id="agUsuarioOriginal">
+    <label>Usuario (número profesional, para iniciar sesión)</label>
+    <input id="agUsuario" placeholder="ej: 3831">
+    <label>Nombre completo</label>
+    <input id="agNombre">
+    <label id="labelAgPassword">Contraseña inicial</label>
+    <input id="agPassword" type="text" placeholder="Déjalo en blanco para no cambiarla">
+    <label>Rol</label>
+    <select id="agRol">
+      <option value="agente">Agente</option>
+      <option value="oficial">Oficial</option>
+      <option value="admin">Administrador</option>
+    </select>
+    <div id="bloqueCodigoRecuperacion" class="oculto" style="margin-bottom:10px;">
+      <button class="secundaria" type="button" style="width:100%" onclick="generarCodigoParaAgente()">Generar código de recuperación</button>
+      <p id="codigoGeneradoTexto" style="font-size:13px;margin-top:6px;"></p>
+    </div>
+    <div class="fila">
+      <button class="secundaria" onclick="cerrarModal('modalAgente')">Cancelar</button>
+      <button class="accion" id="guardarAgenteBtn" onclick="guardarAgente()">Dar de alta</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+}
+</script>
+</body>
+</html>
